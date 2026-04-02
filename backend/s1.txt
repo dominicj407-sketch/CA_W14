@@ -1,202 +1,40 @@
 const express = require("express");
-const cors = require("cors");
-const axios = require("axios");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-
-app.post("/Register", async (req, res) => {
-  const response = await axios.post("http://localhost:3001/register", req.body);
-  res.json(response.data);
-});
-
-app.post("/Login", async (req, res) => {
-  const response = await axios.post("http://localhost:3001/login", req.body);
-  res.json(response.data);
-});
-app.post("/addProduct", async (req, res) => {
-  const response = await axios.post("http://localhost:3002/addProduct", req.body);
-  res.json(response.data);
-});
-
-app.get("/getProducts", async (req, res) => {
-  const response = await axios.get(`http://localhost:3002/getProducts`);
-  res.json(response.data);
-});
-app.listen(3000, () => console.log("API Gateway running on 3000"));
-
-
-
-const express = require("express");
 const mongoose = require("mongoose");
+const multer = require("multer");
 const cors = require("cors");
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect("mongodb://127.0.0.1:27017/userDB");
-
-const userSchema = new mongoose.Schema({
-  email: String,
-  password: String
-});
-
-const User = mongoose.model("User", userSchema);
-app.post("/register", async (req, res) => {
-  try {
-    const user = new User(req.body);
-    await user.save();
-    res.json({ message: "User Registered", user });
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ email, password });
-
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
-  }
-  res.json({ message: "Login Success", user });
-});
-
-app.listen(3001, () => console.log("User Service running on 3001"));
 
 
+mongoose.connect("mongodb://127.0.0.1/productDB");
 
-const express = require("express")
-const mongoose = require("mongoose")
-const multer = require("multer")
 
-const app = express()
-app.use(express.json())
-
-mongoose.connect("mongodb://127.0.0.1/productDB")
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname)
-})
-const upload = multer({ storage })
 const Product = mongoose.model("Product", {
   name: String,
   price: Number,
-  image: String
-})
+  image: String,
+  stock:Number
+});
 
-app.post("/add-product", upload.single("image"), async (req, res) => {
+app.post("/add-product",  async (req, res) => {
   const product = await Product.create({
-    ...req.body,
-    image: req.file.filename
-  })
-  res.json(product)
+    name: req.body.name,
+    price: req.body.price,
+    image: req.body.image
+  });
+  res.json(product);
 });
 
-app.get("/getProducts",async (req,res)=>{
-    const res1=await Product.find();
-    res.json(res1);
+app.get("/getProducts", async (req, res) => {
+  const products = await Product.find();
+  res.json(products);
 });
 
-app.listen(3002)
+app.listen(3002, () => console.log("Product Service running"));
 
-import { useState } from 'react'
-import Register from './Register'
-import Login from './Login'
-import ProductList from './ProductList'
-
-function App() {
-  const [page, setPage] = useState("login")
-
-  return (
-    <>
-      {page === "register" && <Register setPage={setPage} />}
-      {page === "login" && <Login setPage={setPage} />}
-      {page === "products" && <ProductList setPage={setPage} />}
-    </>
-  )
-}
-
-export default App
-
-
-import { useState } from "react"
-import axios from "axios"
-
-function Register({ setPage }) {
-  const [email, setEmail] = useState("")
-  const [pwd, setPwd] = useState("")
-
-  return (
-    <div>
-      <label>Email</label>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} />
-
-      <label>Password</label>
-      <input value={pwd} onChange={(e) => setPwd(e.target.value)} />
-
-      <button onClick={async () => {
-        await axios.post("http://localhost:3000/register", {
-          email,
-          password: pwd
-        })
-        alert("Registered")
-        setPage("login")
-      }}>
-        Register
-      </button>
-
-      <button onClick={() => setPage("login")}>Login</button>
-    </div>
-  )
-}
-
-export default Register
-
-
-import { useState } from "react"
-import axios from "axios"
-
-function Login({ setPage }) {
-  const [email, setEmail] = useState("")
-  const [pwd, setPwd] = useState("")
-
-  return (
-    <div>
-      <label>Email</label>
-      <input value={email} onChange={(e) => setEmail(e.target.value)} />
-
-      <label>Password</label>
-      <input value={pwd} onChange={(e) => setPwd(e.target.value)} />
-
-      <button onClick={async () => {
-        try {
-          const res = await axios.post("http://localhost:3000/login", {
-            email,
-            password: pwd
-          })
-
-          if (res.data.user) {
-            localStorage.setItem("userId", res.data.user._id)
-            setPage("products")
-          } else {
-            alert("Login failed")
-          }
-        } catch {
-          alert("Login failed")
-        }
-      }}>
-        Login
-      </button>
-    </div>
-  )
-}
-
-export default Login
 
 
 import { useEffect, useState } from "react"
@@ -213,17 +51,25 @@ function ProductList() {
 
   const userId = localStorage.getItem("userId")
 
-  const loadProducts = async () => {
-    const res = await axios.get(`http://localhost:5000/api/products/${userId}`)
-    setProducts(res.data)
-  }
+ const loadProducts = async () => {
+  const res = await axios.get("http://localhost:3000/getProducts")
+  setProducts(res.data)
+}
 
   useEffect(() => {
     loadProducts()
   }, [])
 
   const addToCart = (p) => {
-    setCart([...cart, p])
+    const quantity=1;
+    const c1=cart.filter((c)=> c._id==p._id);
+    if(c1)
+        quantity=+c1.quantity;
+    if(quantity>p.stock)
+    {      alert("stock limit reached");
+            return;
+    }
+    setCart([...cart, {...p,quantity}]);
   }
 
   const addProduct = async () => {
@@ -271,10 +117,10 @@ function ProductList() {
                 <h3>{p.name}</h3>
                 <p>₹{p.price}</p>
 
-                <img
-                  src={`http://localhost:3000/uploads/${p.image}`}
-                  width="100"
-                />
+               <img
+  src={`http://localhost:3000/${p.image}`}
+  width="100"
+/>
                 <button onClick={() => addToCart(p)}>Add to Cart</button>
               </li>
             ))}
@@ -288,5 +134,57 @@ function ProductList() {
 export default ProductList
 
 
+const express = require("express");
+const cors = require("cors");
+const axios = require("axios");
+const multer = require("multer");
+const FormData = require("form-data");
+const fs = require("fs");
 
+const app = express();
+app.use(cors());
+app.use(express.json());
 
+app.use("/uploads", express.static("uploads"));
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + "-" + file.originalname)
+});
+
+const upload = multer({ storage });
+
+app.post("/register", async (req, res) => {
+  const response = await axios.post("http://localhost:3001/register", req.body);
+  res.json(response.data);
+});
+
+app.post("/login", async (req, res) => {
+  const response = await axios.post("http://localhost:3001/login", req.body);
+  res.json(response.data);
+});
+
+app.post("/addProduct", upload.single("image"), async (req, res) => {
+  try {
+    if (req.file) {
+      req.body.image=req.file.path;
+    }
+    else{
+      req.body.image="";
+    }
+    const response = await axios.post(
+      "http://localhost:3002/add-product",
+      req.body
+    );
+    res.json(response.data);
+  } catch (err) {
+    res.status(500).json(err.message);
+  }
+});
+
+app.get("/getProducts", async (req, res) => {
+  const response = await axios.get("http://localhost:3002/getProducts");
+  res.json(response.data);
+});
+
+app.listen(3000, () => console.log("API Gateway running on 3000"));

@@ -10,8 +10,13 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/uploads", express.static("uploads"));
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + "-" + file.originalname)
+});
 
-const upload = multer({ dest: "uploads/" });
+const upload = multer({ storage });
 
 app.post("/register", async (req, res) => {
   const response = await axios.post("http://localhost:3001/register", req.body);
@@ -25,24 +30,32 @@ app.post("/login", async (req, res) => {
 
 app.post("/addProduct", upload.single("image"), async (req, res) => {
   try {
-    const formData = new FormData();
-    formData.append("name", req.body.name);
-    formData.append("price", req.body.price);
     if (req.file) {
-      formData.append("image", fs.createReadStream(req.file.path));
+      req.body.image=req.file.path;
+    }
+    else{
+      req.body.image="";
     }
     const response = await axios.post(
       "http://localhost:3002/add-product",
-      formData,
-      { headers: formData.getHeaders() }
+      req.body
     );
-
     res.json(response.data);
   } catch (err) {
     res.status(500).json(err.message);
   }
 });
-
+app.put("/updateStock/:id", async (req, res) => {
+  try {
+    const response = await axios.put(
+      `http://localhost:3002/update-stock/${req.params.id}`,
+      req.body
+    );
+    res.json(response.data);
+  } catch (err) {
+    res.status(500).json(err.message);
+  }
+});
 app.get("/getProducts", async (req, res) => {
   const response = await axios.get("http://localhost:3002/getProducts");
   res.json(response.data);
