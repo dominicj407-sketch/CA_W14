@@ -31,7 +31,7 @@ app.post("/login", async (req, res) => {
 app.post("/addProduct", upload.single("image"), async (req, res) => {
   try {
     if (req.file) {
-      req.body.image=req.file.path;
+      req.body.image=req.file.filename;
     }
     else{
       req.body.image="";

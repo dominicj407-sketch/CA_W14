@@ -20,7 +20,7 @@ function ProductList() {
     loadProducts();
   }, []);
 
-  // ✅ ADD TO CART
+ 
   const addToCart = async (p) => {
     const existing = cart.find((c) => c._id === p._id);
 
@@ -44,7 +44,7 @@ function ProductList() {
       setCart([...cart, { ...p, quantity: 1 }]);
     }
 
-    // ✅ Reduce stock in backend
+  
     await axios.put(`http://localhost:3000/updateStock/${p._id}`, {
       quantity: 1,
     });
@@ -52,16 +52,14 @@ function ProductList() {
     loadProducts();
   };
 
-  // ✅ ADD PRODUCT
+
   const addProduct = async () => {
     const formData = new FormData();
     formData.append("name", name);
     formData.append("price", price);
     formData.append("stock", stock);
     formData.append("image", image);
-
     await axios.post("http://localhost:3000/addProduct", formData);
-
     alert("Product added");
     loadProducts();
   };
@@ -91,7 +89,7 @@ function ProductList() {
           <input placeholder="name" onChange={(e) => setName(e.target.value)} />
           <input placeholder="price" onChange={(e) => setPrice(e.target.value)} />
           <input placeholder="stock" onChange={(e) => setStock(e.target.value)} />
-          <input type="file" onChange={(e) => setImage(e.target.files[0])} />
+          <input type="file" onChange={(e) =>  (e.target.files[0])} />
 
           <button onClick={addProduct}>Add</button>
 
@@ -103,7 +101,7 @@ function ProductList() {
                 <p>Stock: {p.stock}</p>
 
                 <img
-                  src={`http://localhost:3000/${p.image}`}
+                  src={`http://localhost:3000/uploads/${p.image}`}
                   width="100"
                 />
 
